@@ -1,0 +1,309 @@
+{
+  "generated_at": "2026-05-14",
+  "sources": [
+    {
+      "key": "didi",
+      "company": "滴滴",
+      "official_url": "https://careers.didiglobal.com/",
+      "locations": ["北京", "杭州", "上海"],
+      "focus": "出行平台",
+      "templates": ["campus_product", "campus_backend", "campus_data", "social_product", "social_backend", "intern_product"]
+    },
+    {
+      "key": "trip",
+      "company": "携程",
+      "official_url": "https://jobs.careers.trip.com/",
+      "locations": ["上海", "北京", "成都"],
+      "focus": "旅行服务",
+      "templates": ["campus_product", "campus_backend", "campus_data", "campus_ops", "social_product", "social_data"]
+    },
+    {
+      "key": "bilibili",
+      "company": "哔哩哔哩",
+      "official_url": "https://jobs.bilibili.com/",
+      "locations": ["上海", "北京"],
+      "focus": "内容社区",
+      "templates": ["campus_product", "campus_frontend", "campus_data", "campus_ops", "social_product", "intern_ops"]
+    },
+    {
+      "key": "ke",
+      "company": "贝壳",
+      "official_url": "https://join.ke.com/",
+      "locations": ["北京", "上海", "成都"],
+      "focus": "居住服务",
+      "templates": ["campus_product", "campus_backend", "campus_data", "social_product", "social_backend", "intern_data"]
+    },
+    {
+      "key": "oppo",
+      "company": "OPPO",
+      "official_url": "https://careers.oppo.com/",
+      "locations": ["深圳", "东莞", "上海"],
+      "focus": "智能终端",
+      "templates": ["campus_product", "campus_algorithm", "campus_backend", "social_product", "social_algorithm", "intern_product"]
+    },
+    {
+      "key": "vivo",
+      "company": "vivo",
+      "official_url": "https://hr.vivo.com/",
+      "locations": ["深圳", "东莞", "南京"],
+      "focus": "移动终端",
+      "templates": ["campus_product", "campus_frontend", "campus_algorithm", "campus_data", "social_product", "social_backend"]
+    },
+    {
+      "key": "lenovo",
+      "company": "联想",
+      "official_url": "https://www.lenovo.com/us/en/early-careers/",
+      "locations": ["北京", "上海", "深圳", "武汉"],
+      "focus": "智能设备",
+      "templates": ["campus_product", "campus_backend", "campus_data", "campus_ops", "social_product", "intern_data"]
+    },
+    {
+      "key": "dji",
+      "company": "大疆",
+      "official_url": "https://we.dji.com/",
+      "locations": ["深圳", "上海", "北京"],
+      "focus": "无人机与影像",
+      "templates": ["campus_product", "campus_algorithm", "campus_backend", "social_product", "social_algorithm", "intern_product"]
+    },
+    {
+      "key": "hikvision",
+      "company": "海康威视",
+      "official_url": "https://campus.hikvision.com/",
+      "locations": ["杭州", "武汉", "西安"],
+      "focus": "视觉物联",
+      "templates": ["campus_product", "campus_algorithm", "campus_backend", "campus_data", "social_algorithm", "social_product"]
+    },
+    {
+      "key": "sf",
+      "company": "顺丰科技",
+      "official_url": "https://hr.sf-express.com/",
+      "locations": ["深圳", "杭州", "武汉"],
+      "focus": "物流科技",
+      "templates": ["campus_product", "campus_backend", "campus_data", "campus_ops", "social_product", "social_backend"]
+    },
+    {
+      "key": "nio",
+      "company": "蔚来",
+      "official_url": "https://nio.jobs.feishu.cn/",
+      "locations": ["上海", "北京", "合肥"],
+      "focus": "智能汽车",
+      "templates": ["campus_product", "campus_algorithm", "campus_data", "social_product", "social_algorithm", "intern_product"]
+    },
+    {
+      "key": "li_auto",
+      "company": "理想汽车",
+      "official_url": "https://www.lixiang.com/careers/",
+      "locations": ["北京", "上海", "常州"],
+      "focus": "智能座舱",
+      "templates": ["campus_product", "campus_algorithm", "campus_backend", "campus_data", "social_product", "social_backend"]
+    },
+    {
+      "key": "xpeng",
+      "company": "小鹏汽车",
+      "official_url": "https://app.mokahr.com/campus-recruitment/xiaopeng/",
+      "locations": ["广州", "北京", "上海"],
+      "focus": "智能驾驶",
+      "templates": ["campus_product", "campus_algorithm", "campus_backend", "social_product", "social_algorithm", "intern_data"]
+    },
+    {
+      "key": "dewu",
+      "company": "得物",
+      "official_url": "https://app.mokahr.com/campus-recruitment/dewu/",
+      "locations": ["上海", "杭州"],
+      "focus": "潮流电商",
+      "templates": ["campus_product", "campus_backend", "campus_data", "campus_ops", "social_product", "intern_ops"]
+    },
+    {
+      "key": "vipshop",
+      "company": "唯品会",
+      "official_url": "https://campus.vip.com/",
+      "locations": ["广州", "上海"],
+      "focus": "特卖电商",
+      "templates": ["campus_product", "campus_backend", "campus_data", "campus_ops", "social_product", "social_data"]
+    }
+  ],
+  "templates": [
+    {
+      "id": "campus_product",
+      "job_title": "{focus}产品经理校招生",
+      "department": "{focus}产品部",
+      "job_level": "2026 校招",
+      "category": "产品",
+      "role_family": "product_manager",
+      "recruitment_type": "校招",
+      "hard_skills": ["产品设计", "需求分析", "用户研究", "竞品分析", "数据分析", "PRD", "指标体系"],
+      "experience_required": "不限，面向应届毕业生",
+      "education_required": "本科及以上",
+      "soft_skills": ["学习能力", "沟通能力", "逻辑思维"],
+      "jd_raw_text": "参与{focus}相关产品规划、用户研究、需求分析、原型设计、数据指标和上线复盘，适合产品经理方向校招生。"
+    },
+    {
+      "id": "campus_backend",
+      "job_title": "后端开发工程师校招生",
+      "department": "{focus}技术部",
+      "job_level": "2026 校招",
+      "category": "技术",
+      "role_family": "technology",
+      "recruitment_type": "校招",
+      "hard_skills": ["Java", "Go", "MySQL", "Redis", "Linux", "数据结构", "分布式系统"],
+      "experience_required": "不限，面向应届毕业生",
+      "education_required": "本科及以上",
+      "soft_skills": ["学习能力", "问题分析", "团队协作"],
+      "jd_raw_text": "参与{focus}核心系统服务端研发，要求计算机基础扎实，熟悉 Java 或 Go、数据库、缓存和分布式系统基础。"
+    },
+    {
+      "id": "campus_frontend",
+      "job_title": "前端开发工程师校招生",
+      "department": "{focus}前端团队",
+      "job_level": "2026 校招",
+      "category": "技术",
+      "role_family": "technology",
+      "recruitment_type": "校招",
+      "hard_skills": ["JavaScript", "TypeScript", "React", "Vue", "Node.js", "性能优化"],
+      "experience_required": "不限，面向应届毕业生",
+      "education_required": "本科及以上",
+      "soft_skills": ["学习能力", "团队协作", "沟通能力"],
+      "jd_raw_text": "参与{focus}Web 端和运营平台研发，负责复杂交互、前端工程化和性能优化。"
+    },
+    {
+      "id": "campus_algorithm",
+      "job_title": "算法工程师校招生",
+      "department": "{focus}算法团队",
+      "job_level": "2026 校招",
+      "category": "技术",
+      "role_family": "technology",
+      "recruitment_type": "校招",
+      "hard_skills": ["Python", "机器学习", "深度学习", "NLP", "计算机视觉", "算法", "数据结构"],
+      "experience_required": "不限，面向应届毕业生",
+      "education_required": "本科及以上",
+      "soft_skills": ["学习能力", "问题分析", "结果导向"],
+      "jd_raw_text": "参与{focus}相关模型、策略或智能化能力建设，要求机器学习基础扎实，熟悉 Python、算法和数据结构。"
+    },
+    {
+      "id": "campus_data",
+      "job_title": "数据分析师校招生",
+      "department": "{focus}数据团队",
+      "job_level": "2026 校招",
+      "category": "数据",
+      "role_family": "technology",
+      "recruitment_type": "校招",
+      "hard_skills": ["SQL", "Python", "数据分析", "指标体系", "A/B 测试", "BI"],
+      "experience_required": "不限，面向应届毕业生",
+      "education_required": "本科及以上",
+      "soft_skills": ["业务理解", "问题分析", "沟通能力"],
+      "jd_raw_text": "负责{focus}业务指标体系、数据看板、经营分析和实验评估，要求 SQL 扎实并具备业务分析意识。"
+    },
+    {
+      "id": "campus_ops",
+      "job_title": "用户运营校招生",
+      "department": "{focus}运营团队",
+      "job_level": "2026 校招",
+      "category": "运营",
+      "role_family": "operations",
+      "recruitment_type": "校招",
+      "hard_skills": ["用户增长", "运营策略", "内容运营", "活动运营", "数据分析"],
+      "experience_required": "不限，面向应届毕业生",
+      "education_required": "本科及以上",
+      "soft_skills": ["用户洞察", "沟通能力", "结果导向"],
+      "jd_raw_text": "围绕{focus}用户增长、活动和内容生态做策略运营，要求具备数据分析和用户洞察能力。"
+    },
+    {
+      "id": "social_product",
+      "job_title": "{focus}产品经理",
+      "department": "{focus}产品部",
+      "job_level": "社招 2-5 年",
+      "category": "产品",
+      "role_family": "product_manager",
+      "recruitment_type": "社招",
+      "hard_skills": ["产品设计", "需求分析", "用户研究", "数据分析", "项目管理", "产品规划", "指标体系"],
+      "experience_required": "2 年以上互联网产品经验",
+      "education_required": "本科及以上",
+      "soft_skills": ["业务理解", "跨部门推动", "结果导向"],
+      "jd_raw_text": "负责{focus}产品规划、需求拆解、版本迭代和跨团队推进，要求有独立负责产品模块的经验。"
+    },
+    {
+      "id": "social_backend",
+      "job_title": "后端开发工程师",
+      "department": "{focus}技术部",
+      "job_level": "社招 3-6 年",
+      "category": "技术",
+      "role_family": "technology",
+      "recruitment_type": "社招",
+      "hard_skills": ["Java", "Go", "MySQL", "Redis", "Kafka", "微服务", "高并发"],
+      "experience_required": "3 年以上服务端开发经验",
+      "education_required": "本科及以上",
+      "soft_skills": ["问题分析", "团队协作", "抗压能力"],
+      "jd_raw_text": "负责{focus}核心服务研发、系统稳定性和高并发链路优化，要求熟悉服务端工程实践。"
+    },
+    {
+      "id": "social_algorithm",
+      "job_title": "机器学习算法工程师",
+      "department": "{focus}算法团队",
+      "job_level": "社招 2-5 年",
+      "category": "技术",
+      "role_family": "technology",
+      "recruitment_type": "社招",
+      "hard_skills": ["Python", "机器学习", "深度学习", "推荐系统", "计算机视觉", "算法", "SQL"],
+      "experience_required": "2 年以上算法建模或策略优化经验",
+      "education_required": "本科及以上",
+      "soft_skills": ["问题分析", "结果导向", "业务理解"],
+      "jd_raw_text": "负责{focus}相关模型训练、特征工程、策略优化和线上效果评估，要求有机器学习项目经验。"
+    },
+    {
+      "id": "social_data",
+      "job_title": "数据分析师",
+      "department": "{focus}数据团队",
+      "job_level": "社招 2-4 年",
+      "category": "数据",
+      "role_family": "technology",
+      "recruitment_type": "社招",
+      "hard_skills": ["SQL", "Python", "数据分析", "指标体系", "A/B 测试", "BI"],
+      "experience_required": "2 年以上数据分析经验",
+      "education_required": "本科及以上",
+      "soft_skills": ["业务理解", "问题分析", "沟通能力"],
+      "jd_raw_text": "负责{focus}业务分析、指标体系、实验评估和经营看板建设，要求能用数据驱动业务决策。"
+    },
+    {
+      "id": "intern_product",
+      "job_title": "产品经理实习生",
+      "department": "{focus}产品部",
+      "job_level": "日常实习",
+      "category": "产品",
+      "role_family": "product_manager",
+      "recruitment_type": "实习",
+      "hard_skills": ["产品设计", "需求分析", "用户研究", "竞品分析", "数据分析", "PRD"],
+      "experience_required": "在校生，每周至少 4 天，实习 3 个月以上",
+      "education_required": "本科及以上在读",
+      "soft_skills": ["学习能力", "沟通能力", "团队协作"],
+      "jd_raw_text": "支持{focus}产品调研、需求整理、原型设计和数据复盘，适合产品方向在校生。"
+    },
+    {
+      "id": "intern_data",
+      "job_title": "数据分析实习生",
+      "department": "{focus}数据团队",
+      "job_level": "日常实习",
+      "category": "数据",
+      "role_family": "technology",
+      "recruitment_type": "实习",
+      "hard_skills": ["SQL", "Python", "数据分析", "BI", "指标体系"],
+      "experience_required": "在校生，每周至少 4 天，实习 3 个月以上",
+      "education_required": "本科及以上在读",
+      "soft_skills": ["问题分析", "业务理解", "沟通能力"],
+      "jd_raw_text": "支持{focus}数据取数、看板建设、业务分析和实验复盘，要求 SQL 基础扎实。"
+    },
+    {
+      "id": "intern_ops",
+      "job_title": "运营实习生",
+      "department": "{focus}运营团队",
+      "job_level": "日常实习",
+      "category": "运营",
+      "role_family": "operations",
+      "recruitment_type": "实习",
+      "hard_skills": ["内容运营", "活动运营", "用户增长", "数据分析", "运营策略"],
+      "experience_required": "在校生，每周至少 4 天，实习 3 个月以上",
+      "education_required": "本科及以上在读",
+      "soft_skills": ["用户洞察", "沟通能力", "学习能力"],
+      "jd_raw_text": "支持{focus}活动策划、用户运营、内容运营和数据复盘，适合运营方向在校生。"
+    }
+  ]
+}

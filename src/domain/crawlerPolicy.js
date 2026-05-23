@@ -1,0 +1,41 @@
+export const CRAWLER_TARGETS = [
+  { company: "阿里巴巴", priority: "P0", url: "https://talent.alibaba.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "腾讯", priority: "P0", url: "https://join.qq.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "字节跳动", priority: "P0", url: "https://jobs.bytedance.com/campus/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "美团", priority: "P0", url: "https://campus.meituan.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "京东", priority: "P1", url: "https://campus.jd.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "百度", priority: "P1", url: "https://talent.baidu.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "华为", priority: "P1", url: "https://career.huawei.com/reccampportal/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "快手", priority: "P1", url: "https://campus.kuaishou.cn/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "小红书", priority: "P1", url: "https://job.xiaohongshu.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "拼多多", priority: "P1", url: "https://careers.pinduoduo.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "网易", priority: "P1", url: "https://hr.163.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "小米", priority: "P1", url: "https://hr.xiaomi.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "蚂蚁集团", priority: "P1", url: "https://talent.antgroup.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "滴滴", priority: "P1", url: "https://careers.didiglobal.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "携程", priority: "P1", url: "https://jobs.careers.trip.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "哔哩哔哩", priority: "P1", url: "https://jobs.bilibili.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "贝壳", priority: "P2", url: "https://join.ke.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "OPPO", priority: "P2", url: "https://careers.oppo.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "vivo", priority: "P2", url: "https://hr.vivo.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "联想", priority: "P2", url: "https://www.lenovo.com/us/en/early-careers/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "大疆", priority: "P2", url: "https://we.dji.com/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "海康威视", priority: "P2", url: "https://campus.hikvision.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "顺丰科技", priority: "P2", url: "https://hr.sf-express.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "蔚来", priority: "P2", url: "https://nio.jobs.feishu.cn/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "理想汽车", priority: "P2", url: "https://www.lixiang.com/careers/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "小鹏汽车", priority: "P2", url: "https://app.mokahr.com/campus-recruitment/xiaopeng/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "得物", priority: "P2", url: "https://app.mokahr.com/campus-recruitment/dewu/", channels: ["校招", "社招", "实习"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "唯品会", priority: "P2", url: "https://campus.vip.com/", channels: ["校招", "社招"], interval_seconds: 3, hourly_limit: 200 },
+  { company: "BOSS 直聘", priority: "P1", url: "https://www.zhipin.com/", channels: ["社招"], interval_seconds: 3, hourly_limit: 200 },
+];
+
+export function buildCrawlerPolicySummary() {
+  return {
+    mode: "multi-source-seed-sync",
+    note: "MVP 默认合并官方招聘入口整理的种子岗位，并提供可选实时抓取；真实爬虫会先校验 robots.txt，并按目标站策略限速。",
+    robots_required: true,
+    retention_days_after_closed: 30,
+    targets: CRAWLER_TARGETS,
+  };
+}

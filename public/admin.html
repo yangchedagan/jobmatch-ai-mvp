@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobMatch AI Admin</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+  <body>
+    <header class="topbar admin-topbar">
+      <div>
+        <p class="eyebrow">JobMatch AI</p>
+        <h1>运行后台</h1>
+      </div>
+      <div class="topbar-actions">
+        <span id="adminStatus" class="status-dot">加载中</span>
+        <a class="ghost-button admin-link" href="/">工作台</a>
+        <button id="refreshBtn" class="icon-button" title="刷新后台数据" type="button">↻</button>
+      </div>
+    </header>
+
+    <main class="admin-shell">
+      <section id="statsGrid" class="admin-stats"></section>
+
+      <nav class="admin-tabs" aria-label="后台数据">
+        <button class="active" data-panel="runtimePanel" type="button">运行日志</button>
+        <button data-panel="resumePanel" type="button">简历解析</button>
+        <button data-panel="matchPanel" type="button">匹配记录</button>
+        <button data-panel="jobSyncPanel" type="button">岗位同步</button>
+        <button data-panel="errorPanel" type="button">错误日志</button>
+      </nav>
+
+      <section id="runtimePanel" class="admin-panel active">
+        <div class="admin-section-heading">
+          <h2>每次运行</h2>
+          <span id="runCount" class="pill">0 条</span>
+        </div>
+        <div id="runsList" class="admin-card-list"></div>
+
+        <div class="admin-section-heading">
+          <h2>最近事件</h2>
+          <span id="eventCount" class="pill">0 条</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>级别</th>
+                <th>类型</th>
+                <th>消息</th>
+                <th>详情</th>
+              </tr>
+            </thead>
+            <tbody id="runtimeRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="resumePanel" class="admin-panel">
+        <div class="admin-section-heading">
+          <h2>简历解析记录</h2>
+          <span id="resumeCount" class="pill">0 条</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>姓名</th>
+                <th>来源</th>
+                <th>技能</th>
+                <th>项目</th>
+                <th>置信度</th>
+                <th>提示</th>
+              </tr>
+            </thead>
+            <tbody id="resumeRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="matchPanel" class="admin-panel">
+        <div class="admin-section-heading">
+          <h2>匹配报告缓存</h2>
+          <span id="matchCount" class="pill">0 条</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>岗位</th>
+                <th>公司</th>
+                <th>分数</th>
+                <th>等级</th>
+                <th>缺口</th>
+                <th>建议</th>
+              </tr>
+            </thead>
+            <tbody id="matchRows"></tbody>
+          </table>
+        </div>
+
+        <div class="admin-section-heading">
+          <h2>匹配调用事件</h2>
+          <span id="matchEventCount" class="pill">0 条</span>
+        </div>
+        <div id="matchEventsList" class="admin-card-list"></div>
+      </section>
+
+      <section id="jobSyncPanel" class="admin-panel">
+        <div class="admin-section-heading">
+          <h2>岗位同步记录</h2>
+          <span id="jobSyncCount" class="pill">0 条</span>
+        </div>
+        <div id="jobSyncList" class="admin-card-list"></div>
+        <pre id="jobMeta" class="json-block"></pre>
+      </section>
+
+      <section id="errorPanel" class="admin-panel">
+        <div class="admin-section-heading">
+          <h2>错误日志</h2>
+          <span id="errorCount" class="pill">0 条</span>
+        </div>
+        <div id="errorList" class="admin-card-list"></div>
+      </section>
+    </main>
+
+    <dialog id="detailDialog" class="detail-dialog">
+      <form method="dialog">
+        <div class="admin-section-heading">
+          <h2>事件详情</h2>
+          <button class="icon-button" value="close" title="关闭" type="submit">×</button>
+        </div>
+        <pre id="detailJson" class="json-block"></pre>
+      </form>
+    </dialog>
+
+    <script type="module" src="/admin.js"></script>
+  </body>
+</html>

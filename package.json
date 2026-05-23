@@ -1,0 +1,22 @@
+{
+  "name": "jobmatch-ai-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "JobMatch AI MVP: resume parsing, job library, and keyword-based matching report.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.7.284"
+  },
+  "optionalDependencies": {
+    "canvas": "^3.1.0",
+    "tesseract.js": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

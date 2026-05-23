@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: jobmatch-ai-mvp
+    env: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "true"
+      - key: HOST
+        value: 0.0.0.0

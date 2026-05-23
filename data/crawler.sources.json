@@ -1,0 +1,93 @@
+[
+  {
+    "key": "alibaba",
+    "company": "阿里巴巴",
+    "official_url": "https://talent.alibaba.com/",
+    "list_urls": ["https://talent.alibaba.com/", "https://talent.alibaba.com/campus"],
+    "channels": ["校招", "社招", "实习"]
+  },
+  {
+    "key": "tencent",
+    "company": "腾讯",
+    "official_url": "https://join.qq.com/",
+    "list_urls": ["https://join.qq.com/"],
+    "channels": ["校招", "社招", "实习"]
+  },
+  {
+    "key": "bytedance",
+    "company": "字节跳动",
+    "official_url": "https://jobs.bytedance.com/campus/",
+    "list_urls": ["https://jobs.bytedance.com/campus/", "https://jobs.bytedance.com/"],
+    "channels": ["校招", "社招", "实习"]
+  },
+  {
+    "key": "meituan",
+    "company": "美团",
+    "official_url": "https://campus.meituan.com/",
+    "list_urls": ["https://campus.meituan.com/"],
+    "channels": ["校招", "社招"]
+  },
+  {
+    "key": "jd",
+    "company": "京东",
+    "official_url": "https://campus.jd.com/",
+    "list_urls": ["https://campus.jd.com/"],
+    "channels": ["校招", "社招"]
+  },
+  {
+    "key": "baidu",
+    "company": "百度",
+    "official_url": "https://talent.baidu.com/",
+    "list_urls": ["https://talent.baidu.com/"],
+    "channels": ["校招", "社招"]
+  },
+  {
+    "key": "huawei",
+    "company": "华为",
+    "official_url": "https://career.huawei.com/reccampportal/",
+    "list_urls": ["https://career.huawei.com/reccampportal/"],
+    "channels": ["校招", "社招"]
+  },
+  {
+    "key": "didi",
+    "company": "滴滴",
+    "official_url": "https://careers.didiglobal.com/",
+    "list_urls": ["https://careers.didiglobal.com/job", "https://careers.didiglobal.com/university"],
+    "channels": ["校招", "社招", "实习"]
+  },
+  {
+    "key": "trip",
+    "company": "携程",
+    "official_url": "https://jobs.careers.trip.com/",
+    "list_urls": ["https://jobs.careers.trip.com/en_US/careers/SearchJobs"],
+    "channels": ["校招", "社招", "实习"]
+  },
+  {
+    "key": "bilibili",
+    "company": "哔哩哔哩",
+    "official_url": "https://jobs.bilibili.com/",
+    "list_urls": ["https://jobs.bilibili.com/campus/positions", "https://bilibili.github.io/join-us/"],
+    "channels": ["校招", "社招"]
+  },
+  {
+    "key": "xiaomi",
+    "company": "小米",
+    "official_url": "https://career.mi.com/",
+    "list_urls": ["https://career.mi.com/deliveryInstructions"],
+    "channels": ["校招", "社招", "实习"]
+  },
+  {
+    "key": "oppo",
+    "company": "OPPO",
+    "official_url": "https://careers.oppo.com/",
+    "list_urls": ["https://careers.oppo.com/"],
+    "channels": ["校招", "社招"]
+  },
+  {
+    "key": "lenovo",
+    "company": "联想",
+    "official_url": "https://www.lenovo.com/us/en/early-careers/",
+    "list_urls": ["https://www.lenovo.com/us/en/early-careers/lasr/"],
+    "channels": ["校招", "社招", "实习"]
+  }
+]

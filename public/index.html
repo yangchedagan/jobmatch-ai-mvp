@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobMatch AI MVP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="cover-visible">
+    <section id="coverPage" class="cover-page" aria-label="JobMatch AI 封面">
+      <div class="cover-paper" aria-hidden="true"></div>
+      <div class="cover-stage">
+        <div class="cover-wordmark">
+          <span>JobMatch</span>
+          <sup>AI</sup>
+        </div>
+
+        <div class="cover-scene" aria-hidden="true">
+          <div class="cover-bird">
+            <span class="bird-wing"></span>
+            <span class="bird-body"></span>
+          </div>
+          <div class="stone-mark">
+            <span class="stone-letter stone-j">J</span>
+            <span class="stone-letter stone-m">M</span>
+            <i class="moss moss-a"></i>
+            <i class="moss moss-b"></i>
+            <i class="moss moss-c"></i>
+            <i class="moss moss-d"></i>
+          </div>
+          <div class="cover-ground">
+            <i class="rock rock-a"></i>
+            <i class="rock rock-b"></i>
+            <i class="rock rock-c"></i>
+            <i class="grass grass-a"></i>
+            <i class="grass grass-b"></i>
+            <i class="grass grass-c"></i>
+            <i class="grass grass-d"></i>
+            <i class="flower flower-a"></i>
+            <i class="flower flower-b"></i>
+          </div>
+        </div>
+
+        <div class="cover-actions">
+          <div class="cover-copy">
+            <h2>Smart career matching for professionals</h2>
+            <button id="coverPathBtn" class="cover-link-button" type="button">Find your path ↓</button>
+          </div>
+
+          <div class="cover-cta-group" aria-label="进入应用">
+            <button id="coverWorkbenchBtn" class="cover-tile cover-tile-dark" type="button">W.</button>
+            <button id="coverEnterBtn" class="cover-tile cover-tile-primary" type="button">进入工作台</button>
+          </div>
+
+          <div class="cover-match-panel">
+            <p>Great careers are born from perfect matches.</p>
+            <button id="coverMatchBtn" class="cover-match-button" type="button">
+              <span>✉</span>
+              <strong>FIND YOUR MATCH</strong>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="eyebrow">JobMatch AI</p>
+        <h1>求职能力闭环迭代助手</h1>
+      </div>
+      <nav class="view-tabs" aria-label="主流程导航">
+        <button id="workbenchTab" class="view-tab active" data-page="workbench" type="button">岗位工作台</button>
+        <button id="reportTab" class="view-tab" data-page="report" type="button">匹配报告</button>
+        <button id="intelligenceTab" class="view-tab" data-page="intelligence" type="button">岗位情报雷达</button>
+      </nav>
+      <div class="topbar-actions">
+        <span id="health" class="status-dot">启动中</span>
+        <a class="ghost-button admin-link" href="/admin">后台</a>
+        <button id="crawlJobsBtn" class="ghost-button" title="按 robots 与限速抓取官方招聘入口" type="button">抓取</button>
+        <button id="syncJobsBtn" class="icon-button" title="同步岗位库" type="button">↻</button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section id="workbenchPage" class="page-view workbench-page active" aria-label="岗位工作台">
+        <div class="workspace workbench-grid">
+          <section class="panel resume-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="section-index">01</span>
+                <h2>简历解析</h2>
+              </div>
+              <button id="sampleResumeBtn" type="button" class="ghost-button">载入示例</button>
+            </div>
+
+            <form id="resumeForm" class="upload-zone">
+              <label id="dropZone" class="drop-zone" for="resumeFile">
+                <input id="resumeFile" name="resumeFile" type="file" accept=".pdf,.txt,.md,.json,.png,.jpg,.jpeg" />
+                <span class="upload-icon">↑</span>
+                <strong id="fileName">拖拽或点击上传</strong>
+                <small>PDF / TXT / PNG / JPG，≤ 10 MB</small>
+              </label>
+              <textarea id="resumeText" name="resumeText" rows="8" placeholder="也可以直接粘贴简历正文"></textarea>
+              <div class="stepper" aria-label="解析进度">
+                <span data-step="upload">上传中</span>
+                <span data-step="parse">解析中</span>
+                <span data-step="done">完成</span>
+              </div>
+              <button class="primary-button" type="submit">解析简历</button>
+            </form>
+
+            <div id="resumePreview" class="preview empty-state">暂无简历</div>
+          </section>
+
+          <section class="panel jobs-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="section-index">02</span>
+                <h2>岗位库</h2>
+              </div>
+              <span id="jobCount" class="pill">0 个岗位</span>
+            </div>
+
+            <div class="filters">
+              <input id="jobSearch" type="search" placeholder="搜索技能、岗位、公司" />
+              <select id="roleFocus" aria-label="目标方向">
+                <option value="product_manager" selected>产品经理优先</option>
+                <option value="">自动识别</option>
+              </select>
+              <select id="companyFilter" aria-label="公司筛选">
+                <option value="">全部公司</option>
+              </select>
+              <select id="jobTypeFilter" aria-label="岗位性质筛选">
+                <option value="">全部性质</option>
+              </select>
+              <select id="categoryFilter" aria-label="类型筛选">
+                <option value="">全部类型</option>
+              </select>
+            </div>
+
+            <div class="batch-bar">
+              <button id="batchMatchBtn" type="button" class="secondary-button">批量匹配</button>
+              <div class="batch-actions">
+                <span id="selectedCount">已选 0 个</span>
+                <button id="openReportBtn" type="button" class="ghost-button small-button">查看报告</button>
+              </div>
+            </div>
+
+            <div id="jobsList" class="jobs-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="reportPage" class="page-view report-page" aria-label="匹配报告">
+        <div class="report-shell">
+          <section class="panel report-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="section-index">03</span>
+                <h2>匹配报告</h2>
+              </div>
+              <div class="report-actions">
+                <span id="reportStamp" class="pill muted">等待匹配</span>
+                <button id="backToJobsBtn" type="button" class="ghost-button small-button">返回岗位库</button>
+              </div>
+            </div>
+            <div id="reportView" class="report-view empty-state">上传简历后选择岗位</div>
+          </section>
+
+          <aside class="panel ranking-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="section-index">推荐</span>
+                <h2>相关内容</h2>
+              </div>
+              <span class="pill muted">Top10 / 批量排行</span>
+            </div>
+            <div id="rankingView" class="ranking-view empty-state">解析简历后生成推荐岗位</div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="intelligencePage" class="page-view intelligence-page" aria-label="岗位情报雷达">
+        <div class="intelligence-shell">
+          <section class="panel intelligence-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="section-index">04</span>
+                <h2>岗位情报雷达</h2>
+              </div>
+              <div class="report-actions">
+                <span id="intelligenceStamp" class="pill muted">等待目标岗位</span>
+                <button id="backToReportFromIntelBtn" type="button" class="ghost-button small-button">返回匹配报告</button>
+              </div>
+            </div>
+
+            <div class="intelligence-page-toolbar">
+              <div class="intel-target-copy">
+                <strong id="intelligenceTargetTitle">尚未选择岗位</strong>
+                <span id="intelligenceTargetHint" class="muted">先在岗位工作台完成匹配，或从匹配报告进入岗位情报雷达。</span>
+              </div>
+              <button id="startIntelligenceBtn" class="secondary-button" type="button" disabled>启动情报雷达</button>
+            </div>
+
+            <div id="intelligenceView" class="intelligence-view empty-state">暂无目标岗位</div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <template id="jobTemplate">
+      <article class="job-card">
+        <div class="job-select">
+          <input type="checkbox" />
+        </div>
+        <div class="job-body">
+          <div class="job-title-row">
+            <h3></h3>
+            <span class="company"></span>
+          </div>
+          <p class="job-meta"></p>
+          <div class="chips"></div>
+        </div>
+        <button type="button" class="match-button" title="匹配我的简历">◎</button>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
