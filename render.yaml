@@ -13,3 +13,9 @@ services:
         value: "true"
       - key: HOST
         value: 0.0.0.0
+      - key: CORS_ORIGIN
+        sync: false
+        value: https://jobmatch-ai-mvp.onrender.com
+      - key: ADMIN_TOKEN
+        sync: false
+        generateValue: true
