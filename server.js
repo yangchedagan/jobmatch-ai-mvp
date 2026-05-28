@@ -591,7 +591,7 @@ function applyResponseHeaders(req, res) {
 
   const origin = req.headers.origin;
   if (!origin) return true;
-  if (!isCorsOriginAllowed(origin)) return false;
+  if (!isCorsOriginAllowed(origin, req)) return false;
 
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Vary", "Origin");
@@ -600,12 +600,23 @@ function applyResponseHeaders(req, res) {
   return true;
 }
 
-function isCorsOriginAllowed(origin) {
+function isCorsOriginAllowed(origin, req) {
   if (!origin) return true;
   if (ALLOWED_CORS_ORIGINS.includes("*")) return true;
   if (ALLOWED_CORS_ORIGINS.includes(origin)) return true;
+  if (isSameOrigin(origin, req)) return true;
   if (!ALLOWED_CORS_ORIGINS.length && !IS_PRODUCTION) return /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin);
   return false;
+}
+
+function isSameOrigin(origin, req) {
+  try {
+    const host = (req.headers.host || "").split(":")[0];
+    const originHost = new URL(origin).hostname;
+    return host && originHost && host === originHost;
+  } catch {
+    return false;
+  }
 }
 
 function requireAdmin(req, res) {
