@@ -7,6 +7,8 @@ import { extractPdfText } from "./src/domain/pdfText.js";
 import { ocrImageBuffer, ocrPdfBuffer } from "./src/domain/ocrAdapter.js";
 import { parseResumeText } from "./src/domain/resumeParser.js";
 import { buildIntelligenceReport } from "./src/domain/intelligenceRadar.js";
+import { enhanceIntelligenceReportWithDeepSeek, enhanceMatchReportWithDeepSeek } from "./src/domain/deepseekAnalysis.js";
+import { buildSemanticMatchSignals } from "./src/domain/semanticMatcher.js";
 import {
   appendAdminEvent as appendAdminEventToStore,
   cacheReport,
@@ -26,7 +28,7 @@ import {
   saveResume,
   updateResume,
 } from "./src/storage.js";
-import { matchResumeToJob, rankJobsForResume } from "./src/domain/matchEngine.js";
+import { matchResumeToJob } from "./src/domain/matchEngine.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,7 +48,7 @@ const ALLOWED_CORS_ORIGINS = String(process.env.CORS_ORIGIN || "")
 const SENSITIVE_ROUTES_REQUIRE_ADMIN = IS_PRODUCTION || DEMO_MODE || Boolean(ADMIN_TOKEN);
 const DEMO_TTL_MS = Number(process.env.DEMO_TTL_MS || 30 * 60 * 1000);
 const RUN_ID = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-const MATCH_ENGINE_VERSION = "score-v2";
+const MATCH_ENGINE_VERSION = "score-v3-semantic-deepseek-jsonfix";
 const intelligenceTasks = new Map();
 const demoResumes = new Map();
 const demoReportCache = new Map();
@@ -267,6 +269,8 @@ async function handleRequest(req, res, context = {}) {
     if (!jobId) return sendJson(res, 400, { error: "JOB_ID_REQUIRED", message: "jobId is required" });
     const job = await getJob(jobId);
     if (!job) return sendJson(res, 404, { error: "JOB_NOT_FOUND" });
+    const resume = payload.resumeId || payload.resume_id ? await resolveResume(payload.resumeId || payload.resume_id) : null;
+    const matchReport = payload.matchReport || payload.match_report || null;
 
     const task = createIntelligenceTask(job.id);
     await appendAdminEvent({
@@ -280,9 +284,10 @@ async function handleRequest(req, res, context = {}) {
         company: job.company,
         job_title: job.job_title,
         refresh: Boolean(payload.refresh),
+        resume_id: resume?.id || null,
       },
     });
-    runIntelligenceTask(task.task_id, job, { refresh: Boolean(payload.refresh) });
+    runIntelligenceTask(task.task_id, job, { refresh: Boolean(payload.refresh), resume, matchReport });
     sendJson(res, 202, { taskId: task.task_id, estimatedSeconds: payload.refresh ? 6 : 3 });
     return;
   }
@@ -390,11 +395,11 @@ async function handleRequest(req, res, context = {}) {
     if (!resume) return sendJson(res, 404, { error: "RESUME_NOT_FOUND" });
     if (!job) return sendJson(res, 404, { error: "JOB_NOT_FOUND" });
 
-    const cacheKey = `${MATCH_ENGINE_VERSION}:${resume.id}:${job.id}:${targetRole || "auto"}:${job.updated_at || job.publish_date || "seed"}`;
+    const cacheKey = `${MATCH_ENGINE_VERSION}:${process.env.SEMANTIC_MODEL || "default-semantic"}:${process.env.DEEPSEEK_MODEL || "deepseek-v4-pro"}:${resume.id}:${job.id}:${targetRole || "auto"}:${job.updated_at || job.publish_date || "seed"}`;
     let report = refresh ? null : await getReportFromCache(cacheKey);
     const cacheHit = Boolean(report);
     if (!report) {
-      report = matchResumeToJob(resume, job, { targetRole });
+      report = await generateMatchReport(resume, job, { targetRole, includeLlm: true });
       await saveReportToCache(cacheKey, report);
     }
 
@@ -426,7 +431,7 @@ async function handleRequest(req, res, context = {}) {
     if (!resume) return sendJson(res, 404, { error: "RESUME_NOT_FOUND" });
     const jobs = await listJobs({});
     const selectedJobs = jobIds.length ? jobs.filter((job) => jobIds.includes(job.id)) : jobs;
-    const reports = rankJobsForResume(resume, selectedJobs, Number(limit) || 10, { targetRole });
+    const reports = await rankJobsForResumeEnhanced(resume, selectedJobs, Number(limit) || 10, { targetRole });
     await appendAdminEvent({
       type: "match_batch",
       level: "info",
@@ -446,6 +451,26 @@ async function handleRequest(req, res, context = {}) {
   }
 
   await serveStatic(pathname, res);
+}
+
+async function generateMatchReport(resume, job, options = {}) {
+  const semanticSignals = await buildSemanticMatchSignals(resume, job, options);
+  const report = matchResumeToJob(resume, job, {
+    targetRole: options.targetRole,
+    semanticSignals,
+  });
+  if (!options.includeLlm) return report;
+  return enhanceMatchReportWithDeepSeek(report, resume, job);
+}
+
+async function rankJobsForResumeEnhanced(resume, jobs, limit = 10, options = {}) {
+  const candidateLimit = Math.min(jobs.length, Math.max(Number(limit) * 3 || 30, 30));
+  const keywordCandidates = jobs
+    .map((job) => ({ job, report: matchResumeToJob(resume, job, { targetRole: options.targetRole }) }))
+    .sort((a, b) => b.report.total_score - a.report.total_score)
+    .slice(0, candidateLimit);
+  const reports = await Promise.all(keywordCandidates.map(({ job }) => generateMatchReport(resume, job, { ...options, includeLlm: false })));
+  return reports.sort((a, b) => b.total_score - a.total_score).slice(0, limit);
 }
 
 function createIntelligenceTask(jobId) {
@@ -488,12 +513,13 @@ async function runIntelligenceTask(taskId, job, options = {}) {
 
     const cached = options.refresh ? null : await getIntelligenceReport(job.id);
     if (cached) {
+      const report = options.resume || options.matchReport ? await enhanceIntelligenceReportWithDeepSeek(cached, job, options) : cached;
       updateIntelligenceTask(taskId, {
         status: "completed",
         stage: "done",
         progress: 100,
         message: `情报简报已就绪（命中缓存，共 ${cached.meta?.total_sources || 0} 条资料）`,
-        report: cached,
+        report,
       });
       return;
     }
@@ -512,8 +538,10 @@ async function runIntelligenceTask(taskId, job, options = {}) {
       message: "正在提炼高频考点…",
     });
 
-    const report = buildIntelligenceReport(job);
-    await saveIntelligenceReport(report);
+    const baseReport = buildIntelligenceReport(job);
+    const report = await enhanceIntelligenceReportWithDeepSeek(baseReport, job, options);
+    if (options.resume || options.matchReport) await saveIntelligenceReport(baseReport);
+    else await saveIntelligenceReport(report);
 
     await sleep(150);
     updateIntelligenceTask(taskId, {

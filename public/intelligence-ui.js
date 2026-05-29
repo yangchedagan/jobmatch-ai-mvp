@@ -6,7 +6,12 @@ export async function loadIntelligenceReport(jobId) {
 export async function startIntelligence(jobId, options = {}) {
   const data = await api("/api/intelligence/start", {
     method: "POST",
-    body: JSON.stringify({ jobId, refresh: Boolean(options.refresh) }),
+    body: JSON.stringify({
+      jobId,
+      refresh: Boolean(options.refresh),
+      resumeId: options.resumeId || null,
+      matchReport: options.matchReport || null,
+    }),
   });
   const taskId = data.taskId;
   let status = null;
@@ -63,6 +68,8 @@ export function renderIntelligenceReport(report) {
           : ""
       }
 
+      ${renderLlmAnalysis(report.llm_analysis)}
+
       <details class="intel-section" open>
         <summary>高频面试考点</summary>
         <ol class="intel-topic-list">
@@ -109,6 +116,31 @@ export function renderIntelligenceReport(report) {
         </div>
       </details>
     </div>
+  `;
+}
+
+function renderLlmAnalysis(analysis = null) {
+  if (!analysis) return "";
+  const predictions = analysis.interview_predictions || [];
+  const tips = analysis.preparation_tips || [];
+  return `
+    <details class="intel-section llm-section" open>
+      <summary>DeepSeek V4 深度分析</summary>
+      <p class="intel-copy">${escapeHtml(analysis.radar_brief || analysis.match_explanation || "")}</p>
+      ${analysis.status === "generated" ? "" : `<p class="muted">当前为规则降级结果：${escapeHtml(analysis.reason || analysis.status || "")}</p>`}
+      <div class="intel-card-list">
+        ${predictions
+          .map(
+            (item) => `
+          <article class="intel-card">
+            <strong>面试追问</strong>
+            <p>${escapeHtml(item)}</p>
+          </article>`,
+          )
+          .join("")}
+      </div>
+      <div class="chips">${tips.map((item) => `<span class="chip good">${escapeHtml(item)}</span>`).join("")}</div>
+    </details>
   `;
 }
 

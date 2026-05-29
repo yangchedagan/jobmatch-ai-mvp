@@ -1037,7 +1037,6 @@ select:focus {
 }
 
 .detail-actions,
-.intel-inline-actions,
 .source-toolbar,
 .intel-loading-row,
 .intel-topic-head {
@@ -1660,7 +1659,6 @@ select:focus {
   }
 
   .intel-banner,
-  .intel-inline-actions,
   .intelligence-page-toolbar,
   .detail-actions {
     align-items: stretch;

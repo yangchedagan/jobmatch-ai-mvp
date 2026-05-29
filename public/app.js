@@ -16,6 +16,7 @@ const state = {
   currentReport: null,
   intelligenceJobId: null,
   intelligenceJobLabel: "",
+  autoIntelligenceJobs: new Set(),
   targetRole: "product_manager",
   page: "workbench",
   runtime: {
@@ -432,6 +433,7 @@ function renderReport(report) {
         <span class="pill">${escapeHtml(report.role_focus ? `${report.role_focus}优先 · ${report.disclaimer}` : report.disclaimer)}</span>
       </div>
     </div>
+    ${renderMatchLlmAnalysis(report.llm_analysis)}
     <div class="dimension-list">
       ${report.dimensions
         .map(
@@ -471,21 +473,41 @@ function renderReport(report) {
       <h3>冗余项提示</h3>
       <div class="chips">${report.redundant_items.map((item) => chip(item)).join("") || chip("暂无")}</div>
     </div>
-    <div class="report-section">
-      <h3>岗位情报雷达</h3>
-      <div class="intel-inline-actions">
-        <button id="reportIntelBtn" class="secondary-button" type="button">打开岗位情报雷达</button>
-        <span class="muted">在独立页面查看高频面试考点、公司背景、行业背景和原始资料链接。</span>
-      </div>
-    </div>
   `;
-  $("#reportIntelBtn").addEventListener("click", () => openIntelligenceForReport(report));
+  autoStartIntelligenceForReport(report);
 }
 
-function openIntelligenceForReport(report) {
-  selectIntelligenceTarget(report.job_id, `${report.company} · ${report.job_title}`);
-  setActivePage("intelligence", { loadIntelligence: false });
-  runPageIntelligence({ refresh: false });
+function autoStartIntelligenceForReport(report) {
+  if (!report?.job_id || state.autoIntelligenceJobs.has(report.job_id)) return;
+  state.autoIntelligenceJobs.add(report.job_id);
+  runPageIntelligence({ refresh: false, silent: true }).catch(() => {
+    state.autoIntelligenceJobs.delete(report.job_id);
+  });
+}
+
+function renderMatchLlmAnalysis(analysis = null) {
+  if (!analysis) return "";
+  const predictions = analysis.interview_predictions || [];
+  const tips = analysis.preparation_tips || [];
+  return `
+    <div class="report-section llm-section">
+      <h3>DeepSeek V4 深度分析</h3>
+      <p>${escapeHtml(analysis.match_explanation || "")}</p>
+      ${analysis.status === "generated" ? "" : `<p class="muted">当前为规则降级结果：${escapeHtml(analysis.reason || analysis.status || "")}</p>`}
+      <div class="gap-list">
+        ${predictions
+          .map(
+            (item) => `
+          <div class="gap-item">
+            <strong>面试追问</strong>
+            <span class="muted">${escapeHtml(item)}</span>
+          </div>`,
+          )
+          .join("")}
+      </div>
+      <div class="chips">${tips.map((item) => chip(item, "good")).join("")}</div>
+    </div>
+  `;
 }
 
 function selectIntelligenceTarget(jobId, label = "") {
@@ -568,6 +590,8 @@ async function runPageIntelligence(options = {}) {
   try {
     const report = await startIntelligence(jobId, {
       refresh: options.refresh,
+      resumeId: state.resume?.id || null,
+      matchReport: state.currentReport || null,
       onStatus: (status) => {
         view.innerHTML = renderIntelligenceLoading(status);
       },
@@ -577,6 +601,7 @@ async function runPageIntelligence(options = {}) {
   } catch (error) {
     view.innerHTML = renderIntelligenceError(error.message);
     button.textContent = "重新启动情报雷达";
+    if (options.silent) throw error;
   } finally {
     button.disabled = false;
   }

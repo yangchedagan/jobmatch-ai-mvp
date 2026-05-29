@@ -1,5 +1,6 @@
 import { DEGREE_RANK, HARD_SKILLS, ROLE_FAMILIES } from "./taxonomy.js";
 import { extractKeywordLabels, highestDegreeRank, normalizeToken, unique } from "./textUtils.js";
+import { blendKeywordAndSemanticCoverage } from "./semanticMatcher.js";
 
 const WEIGHT_PRESETS = {
   default: {
@@ -39,11 +40,13 @@ export function matchResumeToJob(resume, job, options = {}) {
   const roleFocus = resolveRoleFocus(resume, options.targetRole || options.roleFocus);
   const weights = WEIGHT_PRESETS[roleFocus] || WEIGHT_PRESETS.default;
   const requiredSkills = roleFocus === "product_manager" ? productAwareRequiredSkills(job) : job.hard_skills || [];
-  const hard = keywordCoverage(resume.skills || [], job.hard_skills || []);
+  const semanticSignals = options.semanticSignals || null;
+  const hasSemanticSignals = Boolean(semanticSignals?.hard || semanticSignals?.soft || semanticSignals?.project);
+  const hard = blendKeywordAndSemanticCoverage(keywordCoverage(resume.skills || [], job.hard_skills || []), semanticSignals?.hard);
   const experience = scoreExperience(Number(resume.total_years || 0), Number(job.min_years || 0));
-  const project = scoreProject(resume, { ...job, hard_skills: requiredSkills });
+  const project = scoreProject(resume, { ...job, hard_skills: requiredSkills }, semanticSignals?.project);
   const education = scoreEducation(resume, job);
-  const soft = keywordCoverage(resume.soft_skills || [], job.soft_skills || []);
+  const soft = blendKeywordAndSemanticCoverage(keywordCoverage(resume.soft_skills || [], job.soft_skills || []), semanticSignals?.soft);
   const role = scoreRoleFit(roleFocus, job);
   const scenario = scoreScenarioFit(roleFocus, resume, job);
 
@@ -81,7 +84,15 @@ export function matchResumeToJob(resume, job, options = {}) {
     gap_skills: gapSkills,
     redundant_items: redundantItems,
     recommendation: buildRecommendation(totalScore, gapSkills),
-    disclaimer: "关键词匹配版，仅作为求职准备参考。",
+    scoring_mode: hasSemanticSignals ? "keyword_semantic_blend" : "keyword",
+    semantic_match: semanticSignals
+      ? {
+          model: semanticSignals.model || null,
+          error: semanticSignals.error || null,
+          blend: semanticSignals.blend || { keyword: 0.4, semantic: 0.6 },
+        }
+      : null,
+    disclaimer: hasSemanticSignals ? "关键词 + 语义匹配版，仅作为求职准备参考。" : "关键词匹配版，仅作为求职准备参考。",
   };
 }
 
@@ -237,7 +248,7 @@ function scoreExperience(candidateYears, requiredYears) {
   };
 }
 
-function scoreProject(resume, job) {
+function scoreProject(resume, job, semanticProject = null) {
   const projectText = (resume.projects || [])
     .map((project) => [project.name, project.raw, ...(project.technologies || []), ...(project.contribution || [])].join(" "))
     .join("\n");
@@ -245,7 +256,7 @@ function scoreProject(resume, job) {
   if (!projectText.trim()) {
     return { score: 0, hits: [], missing: job.hard_skills || [], note: "简历未识别到项目经验。" };
   }
-  return keywordCoverage(projectSkills, job.hard_skills || []);
+  return blendKeywordAndSemanticCoverage(keywordCoverage(projectSkills, job.hard_skills || []), semanticProject);
 }
 
 function scoreEducation(resume, job) {

@@ -34,6 +34,39 @@ test("matchResumeToJob returns weighted score and gap list", () => {
   assert.ok(report.gap_skills.some((gap) => gap.keyword === "分布式系统"));
 });
 
+test("semantic signals blend with keyword coverage", () => {
+  const resume = {
+    id: "resume_semantic",
+    skills: ["Axure"],
+    soft_skills: [],
+    projects: [],
+    total_years: 2,
+    education: [],
+  };
+  const job = {
+    id: "job_semantic",
+    job_title: "Product Designer",
+    company: "Demo",
+    hard_skills: ["Prototype Design"],
+    soft_skills: [],
+    min_years: 1,
+  };
+
+  const report = matchResumeToJob(resume, job, {
+    semanticSignals: {
+      model: "stub-semantic-model",
+      blend: { keyword: 0.4, semantic: 0.6 },
+      hard: { score: 100, hits: ["Prototype Design"], missing: [] },
+    },
+  });
+
+  const hardSkill = report.dimensions.find((item) => item.key === "hard_skill");
+  assert.equal(report.scoring_mode, "keyword_semantic_blend");
+  assert.ok(hardSkill.score >= 60);
+  assert.ok(report.matched_highlights.includes("Prototype Design"));
+  assert.ok(!report.gap_skills.some((gap) => gap.keyword === "Prototype Design"));
+});
+
 test("product-manager focus ranks product jobs before technical jobs", () => {
   const resume = parseResumeText(`
 王芳

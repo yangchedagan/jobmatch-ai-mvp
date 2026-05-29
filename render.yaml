@@ -19,3 +19,13 @@ services:
       - key: ADMIN_TOKEN
         sync: false
         generateValue: true
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-pro
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: SEMANTIC_MATCH_ENABLED
+        value: "true"
+      - key: SEMANTIC_MODEL
+        value: Xenova/paraphrase-multilingual-MiniLM-L12-v2
