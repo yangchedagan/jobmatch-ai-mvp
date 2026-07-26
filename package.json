@@ -5,8 +5,8 @@
   "type": "module",
   "description": "JobMatch AI MVP: resume parsing, job library, and keyword-based matching report.",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
+    "dev": "node --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

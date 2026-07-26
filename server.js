@@ -6,8 +6,12 @@ import { fileURLToPath } from "node:url";
 import { extractPdfText } from "./src/domain/pdfText.js";
 import { ocrImageBuffer, ocrPdfBuffer } from "./src/domain/ocrAdapter.js";
 import { parseResumeText } from "./src/domain/resumeParser.js";
-import { buildIntelligenceReport } from "./src/domain/intelligenceRadar.js";
-import { enhanceIntelligenceReportWithDeepSeek, enhanceMatchReportWithDeepSeek } from "./src/domain/deepseekAnalysis.js";
+import { buildVerifiedIntelligenceReport } from "./src/domain/intelligenceRadar.js";
+import { enhanceIntelligenceReportWithLlm, enhanceMatchReportWithLlm } from "./src/domain/llmAnalysis.js";
+import { buildContextAnswerPrompt, collectOutcome, routeAgentMessage } from "./src/agent/router.js";
+import { appendHistory, getOrCreateAgentSession } from "./src/agent/session.js";
+import { executeSkill } from "./src/agent/skills.js";
+import { chatCompletion, extractAssistantContent, isQwenConfigured } from "./src/llm/qwenClient.js";
 import { buildSemanticMatchSignals } from "./src/domain/semanticMatcher.js";
 import {
   appendAdminEvent as appendAdminEventToStore,
@@ -48,7 +52,7 @@ const ALLOWED_CORS_ORIGINS = String(process.env.CORS_ORIGIN || "")
 const SENSITIVE_ROUTES_REQUIRE_ADMIN = IS_PRODUCTION || DEMO_MODE || Boolean(ADMIN_TOKEN);
 const DEMO_TTL_MS = Number(process.env.DEMO_TTL_MS || 30 * 60 * 1000);
 const RUN_ID = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-const MATCH_ENGINE_VERSION = "score-v3-semantic-deepseek-jsonfix";
+const MATCH_ENGINE_VERSION = "score-v4-semantic-qwen-agent";
 const intelligenceTasks = new Map();
 const demoResumes = new Map();
 const demoReportCache = new Map();
@@ -395,7 +399,7 @@ async function handleRequest(req, res, context = {}) {
     if (!resume) return sendJson(res, 404, { error: "RESUME_NOT_FOUND" });
     if (!job) return sendJson(res, 404, { error: "JOB_NOT_FOUND" });
 
-    const cacheKey = `${MATCH_ENGINE_VERSION}:${process.env.SEMANTIC_MODEL || "default-semantic"}:${process.env.DEEPSEEK_MODEL || "deepseek-v4-pro"}:${resume.id}:${job.id}:${targetRole || "auto"}:${job.updated_at || job.publish_date || "seed"}`;
+    const cacheKey = buildMatchCacheKey(resume, job, targetRole);
     let report = refresh ? null : await getReportFromCache(cacheKey);
     const cacheHit = Boolean(report);
     if (!report) {
@@ -450,7 +454,169 @@ async function handleRequest(req, res, context = {}) {
     return;
   }
 
+  if (pathname === "/api/agent/chat" && req.method === "POST") {
+    enforceRateLimit(req, "agent-chat", { max: 30, windowMs: 60 * 1000 });
+    const payload = await readJsonBody(req, MAX_UPLOAD_BYTES * 2);
+    const message = String(payload.message || "").trim();
+    const command = payload.command && payload.command.skill ? payload.command : null;
+    const session = getOrCreateAgentSession(payload.sessionId);
+    const attachment = await extractAgentAttachment(payload.attachment);
+
+    if (!message && !attachment.text && !command) {
+      return sendJson(res, 422, { error: "MESSAGE_EMPTY", message: "请输入指令或上传附件。" });
+    }
+
+    const runtime = buildAgentRuntime(req, session, attachment);
+    let result;
+    if (command) {
+      // 卡片操作（多选匹配、建议动作）走确定性命令通道，不经 LLM 路由
+      appendHistory(session, "user", String(command.label || `执行 ${command.skill}`));
+      const outcome = await executeSkill(String(command.skill), command.args || {}, runtime);
+      const cards = [];
+      const actions = [];
+      collectOutcome(outcome, cards, actions);
+      appendHistory(session, "assistant", outcome.reply);
+      result = {
+        reply: outcome.reply,
+        cards,
+        actions,
+        skill_calls: [{ skill: command.skill, args: command.args || {} }],
+        route: "command",
+      };
+    } else {
+      result = await routeAgentMessage({ message, session, runtime });
+    }
+
+    await appendAdminEvent({
+      type: "agent_chat",
+      level: "info",
+      message: "Agent chat handled",
+      run_id: RUN_ID,
+      detail: {
+        session_id: session.id,
+        route: result.route,
+        skills: (result.skill_calls || []).map((call) => call.skill),
+        card_count: (result.cards || []).length,
+        has_attachment: Boolean(attachment.text),
+      },
+    });
+
+    sendJson(res, 200, {
+      sessionId: session.id,
+      reply: result.reply,
+      cards: result.cards || [],
+      actions: result.actions || [],
+      route: result.route,
+      skill_calls: result.skill_calls || [],
+    });
+    return;
+  }
+
   await serveStatic(pathname, res);
+}
+
+function buildAgentRuntime(req, session, attachment = {}) {
+  return {
+    session,
+    demoMode: DEMO_MODE,
+    isAdmin: !SENSITIVE_ROUTES_REQUIRE_ADMIN || Boolean(ADMIN_TOKEN && timingSafeEqual(adminTokenFromRequest(req), ADMIN_TOKEN)),
+    attachmentText: attachment.text || "",
+    attachmentWarnings: attachment.warnings || [],
+    attachmentSource: attachment.source || null,
+    attachmentMeta: attachment.meta || null,
+    publicResume,
+    resolveResume,
+    saveResume: async (resume) => (DEMO_MODE ? saveDemoResume(resume) : saveResume(resume)),
+    updateResume: async (id, patch) => (DEMO_MODE ? updateDemoResume(id, patch) : updateResume(id, patch)),
+    matchWithCache: async (resume, job, targetRole) => {
+      const cacheKey = buildMatchCacheKey(resume, job, targetRole);
+      let report = await getReportFromCache(cacheKey);
+      if (!report) {
+        report = await generateMatchReport(resume, job, { targetRole, includeLlm: true });
+        await saveReportToCache(cacheKey, report);
+      }
+      return report;
+    },
+    rankJobs: (resume, jobs, limit, targetRole) => rankJobsForResumeEnhanced(resume, jobs, limit, { targetRole }),
+    answerWithContext: async (question, activeSession) => {
+      if (!isQwenConfigured()) return null;
+      const resume = activeSession.resumeId ? await resolveResume(activeSession.resumeId) : null;
+      try {
+        const payload = await chatCompletion({
+          messages: [
+            {
+              role: "system",
+              content: `你是 JobMatch AI 求职助手，用简体中文简洁回答用户与求职相关的问题。\n${buildContextAnswerPrompt(activeSession, resume)}`,
+            },
+            { role: "user", content: question || "我该怎么用这个助手？" },
+          ],
+          maxTokens: 600,
+        });
+        return extractAssistantContent(payload) || null;
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+async function extractAgentAttachment(attachment) {
+  if (!attachment || !attachment.content_base64) return {};
+  const buffer = Buffer.from(String(attachment.content_base64), "base64");
+  if (!buffer.length) return {};
+  if (buffer.length > MAX_UPLOAD_BYTES) {
+    const error = new Error("文件过大");
+    error.statusCode = 413;
+    error.payload = { error: "PAYLOAD_TOO_LARGE", message: "文件大小不能超过 10 MB。" };
+    throw error;
+  }
+
+  const upload = {
+    filename: attachment.filename || "resume",
+    contentType: attachment.content_type || "application/octet-stream",
+    buffer,
+  };
+  const { extension, safeFilename } = validateUpload(upload);
+  const warnings = [];
+  let text = "";
+
+  if ([".txt", ".md", ".json", ".csv"].includes(extension)) {
+    text = buffer.toString("utf8");
+  } else if (extension === ".pdf") {
+    const pdfResult = await extractPdfText(buffer);
+    text = pdfResult.text;
+    warnings.push(...pdfResult.warnings);
+    if (pdfResult.isImagePdf || !text) {
+      warnings.push("检测到 PDF 缺少可解析文本层，正在尝试 OCR 识别。");
+      try {
+        const ocrResult = await ocrPdfBuffer(buffer, { lang: "chi_sim+eng", scale: 2.0 });
+        text = ocrResult.text;
+        warnings.push(...ocrResult.warnings);
+      } catch (ocrError) {
+        warnings.push(buildOcrWarning(ocrError, "PDF"));
+      }
+    }
+  } else if ([".png", ".jpg", ".jpeg"].includes(extension)) {
+    warnings.push("检测到图片文件，正在尝试 OCR 识别。");
+    try {
+      const ocrResult = await ocrImageBuffer(buffer, { lang: "chi_sim+eng" });
+      text = ocrResult.text;
+      warnings.push(...ocrResult.warnings);
+    } catch (ocrError) {
+      warnings.push(buildOcrWarning(ocrError, "图片"));
+    }
+  }
+
+  return {
+    text: String(text || "").trim(),
+    warnings,
+    source: extension ? extension.slice(1) : "file",
+    meta: {
+      file_name: safeFilename,
+      file_size: buffer.length,
+      mime_type: upload.contentType,
+    },
+  };
 }
 
 async function generateMatchReport(resume, job, options = {}) {
@@ -460,7 +626,11 @@ async function generateMatchReport(resume, job, options = {}) {
     semanticSignals,
   });
   if (!options.includeLlm) return report;
-  return enhanceMatchReportWithDeepSeek(report, resume, job);
+  return enhanceMatchReportWithLlm(report, resume, job);
+}
+
+function buildMatchCacheKey(resume, job, targetRole) {
+  return `${MATCH_ENGINE_VERSION}:${process.env.SEMANTIC_MODEL || "default-semantic"}:${process.env.QWEN_MODEL || "qwen-plus"}:${resume.id}:${job.id}:${targetRole || "auto"}:${job.updated_at || job.publish_date || "seed"}`;
 }
 
 async function rankJobsForResumeEnhanced(resume, jobs, limit = 10, options = {}) {
@@ -513,7 +683,7 @@ async function runIntelligenceTask(taskId, job, options = {}) {
 
     const cached = options.refresh ? null : await getIntelligenceReport(job.id);
     if (cached) {
-      const report = options.resume || options.matchReport ? await enhanceIntelligenceReportWithDeepSeek(cached, job, options) : cached;
+      const report = options.resume || options.matchReport ? await enhanceIntelligenceReportWithLlm(cached, job, options) : cached;
       updateIntelligenceTask(taskId, {
         status: "completed",
         stage: "done",
@@ -528,18 +698,18 @@ async function runIntelligenceTask(taskId, job, options = {}) {
     updateIntelligenceTask(taskId, {
       stage: "fetch",
       progress: 45,
-      message: "正在抓取与清洗公开线索…",
+      message: "正在实时搜索并逐条验证链接可用性…",
     });
 
-    await sleep(250);
+    const baseReport = await buildVerifiedIntelligenceReport(job);
+
     updateIntelligenceTask(taskId, {
       stage: "analyze",
       progress: 76,
       message: "正在提炼高频考点…",
     });
 
-    const baseReport = buildIntelligenceReport(job);
-    const report = await enhanceIntelligenceReportWithDeepSeek(baseReport, job, options);
+    const report = await enhanceIntelligenceReportWithLlm(baseReport, job, options);
     if (options.resume || options.matchReport) await saveIntelligenceReport(baseReport);
     else await saveIntelligenceReport(report);
 

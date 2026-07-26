@@ -48,7 +48,9 @@ test("buildIntelligenceReport returns four radar sections and fresh cache metada
   assert.ok(report.company_background.summary.includes("示例科技"));
   assert.ok(report.industry_background.category);
   assert.ok(report.raw_sources.length >= 8);
-  assert.equal(report.meta.sample_warning, false);
+  assert.equal(report.meta.sample_warning, true);
+  assert.equal(report.meta.source_mode, "search-entry-fallback");
+  assert.equal(report.meta.interview_post_count, 0);
   assert.equal(isIntelligenceReportFresh(report, new Date("2026-05-18T10:00:00.000Z")), true);
   assert.equal(isIntelligenceReportFresh(report, new Date("2026-05-25T10:00:01.000Z")), false);
 });

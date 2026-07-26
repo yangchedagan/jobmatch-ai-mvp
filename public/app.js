@@ -18,7 +18,7 @@ const state = {
   intelligenceJobLabel: "",
   autoIntelligenceJobs: new Set(),
   targetRole: "product_manager",
-  page: "workbench",
+  page: "agent",
   runtime: {
     demo: false,
     admin: false,
@@ -45,6 +45,32 @@ const sampleResume = `张明
 技能栈
 产品设计 / 需求分析 / 用户研究 / 竞品分析 / 数据分析 / SQL / BI / 数据埋点 / A/B 测试 / 指标体系 / 用户增长 / 增长策略 / 项目管理 / Figma / Axure
 软素质：沟通能力、跨部门推动、业务理解、结果导向、逻辑思维`;
+
+export { sampleResume };
+
+/* Agent 对话产出 → 各页面状态同步（保证切页即见） */
+export const agentSync = {
+  resume(resume) {
+    if (!resume) return;
+    state.resume = resume;
+    renderResume(resume);
+  },
+  matchReport(report) {
+    if (!report?.job_id) return;
+    state.activeJobId = report.job_id;
+    renderReport(report);
+  },
+  ranking(reports, title = "Agent 推荐排行") {
+    if (!Array.isArray(reports) || !reports.length) return;
+    renderRanking(reports, title);
+  },
+  radar(report) {
+    if (!report?.job_id) return;
+    renderPageIntelligence(report.job_id, report);
+    const button = $("#startIntelligenceBtn");
+    if (button) button.textContent = "刷新情报";
+  },
+};
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -74,13 +100,13 @@ function bindEvents() {
   $("#startIntelligenceBtn").addEventListener("click", () => runPageIntelligence({ refresh: false }));
   $("#coverPathBtn").addEventListener("click", () => enterFromCover("workbench"));
   $("#coverWorkbenchBtn").addEventListener("click", () => enterFromCover("workbench"));
-  $("#coverEnterBtn").addEventListener("click", () => enterFromCover("workbench"));
-  $("#coverMatchBtn").addEventListener("click", () => enterFromCover("report"));
+  $("#coverEnterBtn").addEventListener("click", () => enterFromCover("agent"));
+  $("#coverMatchBtn")?.addEventListener("click", () => enterFromCover("report"));
   window.addEventListener("hashchange", () => {
     setActivePage(pageFromHash(location.hash), { syncHash: false });
   });
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && document.body.classList.contains("cover-visible")) enterFromCover("workbench");
+    if (event.key === "Escape" && document.body.classList.contains("cover-visible")) enterFromCover("agent");
   });
   $("#jobSearch").addEventListener("input", applyFilters);
   $("#companyFilter").addEventListener("change", applyFilters);
@@ -118,7 +144,7 @@ function bindEvents() {
 function setupCoverPage() {
   const cover = $("#coverPage");
   if (!cover) return;
-  const hasDeepLink = Boolean(location.hash && pageFromHash(location.hash) !== "workbench");
+  const hasDeepLink = Boolean(location.hash && pageFromHash(location.hash) !== "agent");
   if (hasDeepLink) {
     cover.hidden = true;
     document.body.classList.remove("cover-visible");
@@ -145,7 +171,7 @@ function enterFromCover(page) {
 }
 
 function setActivePage(page, options = {}) {
-  state.page = ["report", "intelligence"].includes(page) ? page : "workbench";
+  state.page = ["workbench", "report", "intelligence"].includes(page) ? page : "agent";
   if (state.page === "intelligence") {
     ensureIntelligenceTarget();
     updateIntelligenceTarget();
@@ -165,7 +191,7 @@ function setActivePage(page, options = {}) {
 
 function pageFromHash(hash) {
   const page = String(hash || "").replace(/^#/, "");
-  return ["workbench", "report", "intelligence"].includes(page) ? page : "workbench";
+  return ["agent", "workbench", "report", "intelligence"].includes(page) ? page : "agent";
 }
 
 async function loadHealth() {
@@ -309,9 +335,10 @@ function renderJobs() {
   $("#selectedCount").textContent = `已选 ${state.selectedJobIds.size} 个`;
   list.innerHTML = "";
 
-  for (const job of state.filteredJobs) {
+  for (const [index, job] of state.filteredJobs.entries()) {
     const node = template.content.cloneNode(true);
     const card = node.querySelector(".job-card");
+    card.style.setProperty("--i", index);
     const checkbox = node.querySelector("input");
     const button = node.querySelector(".match-button");
     card.classList.toggle("active", state.activeJobId === job.id);

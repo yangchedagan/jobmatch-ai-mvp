@@ -1,18 +1,18 @@
 import crypto from "node:crypto";
 
 import { compactWhitespace, normalizeToken, unique } from "./textUtils.js";
+import { searchWebSources, verifyUrls } from "./liveSourceSearch.js";
 
 export const INTELLIGENCE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+// 兜底检索入口只保留实测无登录墙、可直接看到结果的平台（脉脉搜索 404、知乎搜索有登录墙，已剔除）。
 const EXPERIENCE_PLATFORMS = [
-  { platform: "牛客", weight: 34, searchUrl: (query) => `https://www.nowcoder.com/search?query=${encodeURIComponent(query)}` },
-  { platform: "知乎", weight: 30, searchUrl: (query) => `https://www.zhihu.com/search?type=content&q=${encodeURIComponent(query)}` },
-  { platform: "脉脉", weight: 22, searchUrl: (query) => `https://maimai.cn/search?query=${encodeURIComponent(query)}` },
-  { platform: "Boss直聘", weight: 18, searchUrl: (query) => `https://www.zhipin.com/web/geek/job?query=${encodeURIComponent(query)}` },
+  { platform: "牛客", weight: 34, searchUrl: (query) => `https://www.nowcoder.com/search/all/?query=${encodeURIComponent(query)}` },
+  { platform: "百度", weight: 26, searchUrl: (query) => `https://www.baidu.com/s?wd=${encodeURIComponent(query)}` },
 ];
 
 const INFO_PLATFORMS = [
-  { platform: "百度百科", type: "company", searchUrl: (query) => `https://baike.baidu.com/search/word?word=${encodeURIComponent(query)}` },
+  { platform: "百度百科", type: "company", searchUrl: (query) => `https://baike.baidu.com/item/${encodeURIComponent(query)}` },
   { platform: "36氪", type: "news", searchUrl: (query) => `https://36kr.com/search/articles/${encodeURIComponent(query)}` },
   { platform: "虎嗅", type: "news", searchUrl: (query) => `https://www.huxiu.com/search.html?s=${encodeURIComponent(query)}` },
   { platform: "公司官网", type: "company", searchUrl: (query) => `https://www.baidu.com/s?wd=${encodeURIComponent(`${query} 官网 About`)}` },
@@ -78,13 +78,12 @@ export function buildIntelligenceReport(job, options = {}) {
   const cacheExpiresAt = new Date(now.getTime() + INTELLIGENCE_CACHE_TTL_MS).toISOString();
   const searchKeywords = generateSearchKeywords(job);
   const topicCandidates = rankTopicCandidates(job);
-  const interviewSources = buildInterviewSources(job, searchKeywords, topicCandidates, now);
-  const backgroundSources = buildBackgroundSources(job, now);
+  const interviewSources = buildInterviewSources(job, searchKeywords);
+  const backgroundSources = buildBackgroundSources(job);
   const rawSources = dedupeSources([...interviewSources, ...backgroundSources]).sort((a, b) => b.quality_score - a.quality_score);
-  const interviewTopics = buildInterviewTopics(topicCandidates, interviewSources);
-  const industryBackground = buildIndustryBackground(job, now);
-  const companyBackground = buildCompanyBackground(job, industryBackground, now);
-  const interviewPostCount = interviewSources.length;
+  const interviewTopics = buildInterviewTopics(topicCandidates, job);
+  const industryBackground = buildIndustryBackground(job);
+  const companyBackground = buildCompanyBackground(job, industryBackground);
 
   return {
     job_id: job.id,
@@ -99,11 +98,137 @@ export function buildIntelligenceReport(job, options = {}) {
     raw_sources: rawSources,
     meta: {
       total_sources: rawSources.length,
-      interview_post_count: interviewPostCount,
-      sample_warning: interviewPostCount < 5,
-      source_mode: "local-mvp-search-links",
+      interview_post_count: 0,
+      sample_warning: true,
+      source_mode: "search-entry-fallback",
     },
   };
+}
+
+/**
+ * 实时搜索 + 逐链验证版情报雷达：
+ * 1. 按「公司 + 岗位」粒度实时搜索公开面经与公司动态，拿到真实帖子 URL；
+ * 2. 对每一条链接做存活校验，确定性死链一律剔除；
+ * 3. 实时搜索不可用时回退到 buildIntelligenceReport 的诚实检索入口（不伪造帖子）。
+ */
+export async function buildVerifiedIntelligenceReport(job, options = {}) {
+  const base = buildIntelligenceReport(job, options);
+  let live;
+  try {
+    live = await collectLiveSources(job, options);
+  } catch {
+    live = null;
+  }
+  if (!live || !live.posts.length) return base;
+  return mergeLiveSources(base, live, job);
+}
+
+async function collectLiveSources(job, options = {}) {
+  const company = cleanCompany(job.company) || String(job.company || "");
+  const roleType = inferRoleType(job);
+  const jobTitle = String(job.job_title || roleType);
+  const queries = unique([
+    `${job.company || company} ${jobTitle} 面经`,
+    `${company} ${roleType} 面试 经验`,
+    `${job.company || company} 最新 动态`,
+  ]);
+
+  const batches = await Promise.all(
+    queries.map((query, index) =>
+      searchWebSources(query, { limit: index === queries.length - 1 ? 5 : 8, timeoutMs: options.searchTimeoutMs }).catch(() => []),
+    ),
+  );
+
+  const seen = new Set();
+  const candidates = [];
+  batches.forEach((items, batchIndex) => {
+    for (const item of items) {
+      if (seen.has(item.url)) continue;
+      seen.add(item.url);
+      const text = `${item.title} ${item.snippet}`;
+      const isInterview = /面经|面试|笔试|offer|一面|二面|三面/i.test(text);
+      const mentionsCompany = company && text.includes(company);
+      // 相关性闸门：必须命中公司名，或同时命中岗位类型与面试语境，否则视为无关结果丢弃。
+      if (!mentionsCompany && !(isInterview && text.includes(roleType))) continue;
+      candidates.push({
+        ...item,
+        source_type: batchIndex === queries.length - 1 && !isInterview ? "news" : "interview",
+        relevance: (mentionsCompany ? 2 : 0) + (text.includes(jobTitle) ? 2 : 0) + (isInterview ? 1 : 0),
+      });
+    }
+  });
+
+  const { passed, dropped } = await verifyUrls(candidates, { timeoutMs: options.verifyTimeoutMs });
+  return {
+    posts: passed,
+    linkCheck: { checked: candidates.length, passed: passed.length, dropped: dropped.length },
+  };
+}
+
+function mergeLiveSources(base, live, job) {
+  const interviewPosts = live.posts.filter((post) => post.source_type === "interview");
+  const newsPosts = live.posts.filter((post) => post.source_type === "news");
+
+  const liveSources = live.posts.map((post, index) => ({
+    id: hashSource(`${post.platform}:${post.url}`),
+    platform: post.platform,
+    source_type: post.source_type,
+    topic: null,
+    title: post.title,
+    url: post.url,
+    published_at: post.published_at,
+    snippet: post.snippet,
+    quality_score: Math.min(98, 58 + post.relevance * 6 + platformBonus(post.platform) - Math.floor(index / 4)),
+    is_expired: false,
+    verified: true,
+  }));
+
+  const searchEntries = base.raw_sources.filter((source) => source.source_type === "search_entry").slice(0, 2);
+  const rawSources = dedupeSources([...liveSources, ...searchEntries]).sort((a, b) => b.quality_score - a.quality_score);
+
+  const interviewTopics = base.interview_topics.map((topic) => {
+    const aliasList = [topic.topic, ...(findTopicAliases(job, topic.topic) || [])];
+    const matched = interviewPosts
+      .filter((post) => aliasList.some((alias) => alias && `${post.title} ${post.snippet}`.includes(alias)))
+      .slice(0, 3)
+      .map(sourceRef);
+    return matched.length ? { ...topic, sources: matched } : topic;
+  });
+
+  const recentNews = newsPosts.slice(0, 3).map((post) => ({
+    title: post.title,
+    url: post.url,
+    published_at: post.published_at,
+    summary: post.snippet || `来自 ${post.platform} 的公开报道。`,
+  }));
+
+  return {
+    ...base,
+    interview_topics: interviewTopics,
+    company_background: recentNews.length ? { ...base.company_background, recent_news: recentNews } : base.company_background,
+    raw_sources: rawSources,
+    meta: {
+      ...base.meta,
+      total_sources: rawSources.length,
+      interview_post_count: interviewPosts.length,
+      sample_warning: interviewPosts.length < 5,
+      source_mode: "live-web-verified",
+      link_check: live.linkCheck,
+    },
+  };
+}
+
+function platformBonus(platform) {
+  if (platform === "牛客") return 20;
+  if (platform === "知乎") return 15;
+  if (platform === "CSDN" || platform === "脉脉") return 10;
+  if (platform === "36氪" || platform === "虎嗅") return 8;
+  return 4;
+}
+
+function findTopicAliases(job, topicName) {
+  const presets = [...(TOPIC_PRESETS[inferRoleFamily(job)] || []), ...TOPIC_PRESETS.general];
+  return presets.find((item) => item.topic === topicName)?.aliases;
 }
 
 export function isIntelligenceReportFresh(report, now = new Date()) {
@@ -140,74 +265,63 @@ export function rankTopicCandidates(job) {
     .slice(0, 10);
 }
 
-function buildInterviewTopics(topicCandidates, interviewSources) {
-  return topicCandidates.map((item) => {
-    const sources = interviewSources
-      .filter((source) => source.topic === item.topic || item.aliases.some((alias) => source.snippet.includes(alias)))
-      .slice(0, 3)
-      .map(sourceRef);
+function buildInterviewTopics(topicCandidates, job) {
+  const roleType = inferRoleType(job);
+  const company = cleanCompany(job.company) || String(job.company || "");
+  const entryPlatform = EXPERIENCE_PLATFORMS[0];
 
+  return topicCandidates.map((item) => {
+    const query = compactWhitespace(`${company} ${roleType} ${item.topic} 面经`);
     return {
       topic: item.topic,
       frequency: item.frequency,
       example_questions: item.example_questions.slice(0, 2),
-      sources,
+      // 兜底来源指向真实检索页（打开即是该考点的最新公开结果），实时搜到真实帖子后会被覆盖。
+      sources: [
+        {
+          title: `${query}｜${entryPlatform.platform}实时检索`,
+          url: entryPlatform.searchUrl(query),
+          platform: entryPlatform.platform,
+          published_at: null,
+        },
+      ],
     };
   });
 }
 
-function buildInterviewSources(job, searchKeywords, topicCandidates, now) {
+function buildInterviewSources(job, searchKeywords) {
   const roleType = inferRoleType(job);
   const company = cleanCompany(job.company);
+  const keywords = searchKeywords.length ? searchKeywords : [compactWhitespace(`${company} ${roleType} 面经`)];
+
   const output = [];
-  const topicSeed = topicCandidates.slice(0, 8);
-
-  topicSeed.forEach((topicItem, index) => {
-    const platform = EXPERIENCE_PLATFORMS[index % EXPERIENCE_PLATFORMS.length];
-    const keyword = searchKeywords[index % searchKeywords.length] || `${company} ${roleType} 面经`;
-    const publishedAt = monthsAgo(now, (index % 12) + 1);
-    const snippet = `${company || job.company || "目标公司"} ${roleType} 面试线索：多份经验提到 ${topicItem.topic}，典型追问包括「${topicItem.example_questions[0]}」。`;
-    output.push({
-      id: hashSource(`${platform.platform}:${keyword}:${topicItem.topic}`),
-      platform: platform.platform,
-      source_type: "interview",
-      topic: topicItem.topic,
-      title: `${keyword}｜${topicItem.topic} 面经线索`,
-      url: platform.searchUrl(`${keyword} ${topicItem.topic}`),
-      published_at: publishedAt,
-      snippet,
-      quality_score: Math.min(98, platform.weight + topicItem.frequency * 5 + (index < 3 ? 8 : 0)),
-      is_expired: false,
-    });
+  keywords.forEach((keyword, keywordIndex) => {
+    for (const platform of EXPERIENCE_PLATFORMS) {
+      output.push({
+        id: hashSource(`${platform.platform}:entry:${keyword}`),
+        platform: platform.platform,
+        source_type: "search_entry",
+        topic: null,
+        title: `${keyword}｜${platform.platform}实时检索`,
+        url: platform.searchUrl(keyword),
+        published_at: null,
+        snippet: `实时搜索入口：打开即是「${keyword}」的最新公开检索结果。`,
+        quality_score: platform.weight + 22 - keywordIndex * 4,
+        is_expired: false,
+      });
+    }
   });
-
-  for (const platform of EXPERIENCE_PLATFORMS.slice(0, 2)) {
-    const keyword = searchKeywords[0] || `${company} ${roleType}`;
-    output.push({
-      id: hashSource(`${platform.platform}:search:${keyword}`),
-      platform: platform.platform,
-      source_type: "interview_search",
-      topic: null,
-      title: `${keyword} 面经搜索入口`,
-      url: platform.searchUrl(`${keyword} 面经`),
-      published_at: monthsAgo(now, 2),
-      snippet: `用于继续核验 ${job.company || company} ${job.job_title || roleType} 的公开面经结果。`,
-      quality_score: platform.weight + 24,
-      is_expired: false,
-    });
-  }
-
   return output;
 }
 
-function buildBackgroundSources(job, now) {
+function buildBackgroundSources(job) {
   const company = cleanCompany(job.company);
   const industry = detectIndustry(job);
   const queries = [
-    { query: company || job.company, title: `${company || job.company} 公司背景`, platform: INFO_PLATFORMS[0], months: 1 },
-    { query: `${company || job.company} 近期动态`, title: `${company || job.company} 近期动态`, platform: INFO_PLATFORMS[1], months: 2 },
-    { query: `${industry.category} 行业趋势`, title: `${industry.category} 行业趋势`, platform: INFO_PLATFORMS[2], months: 3 },
-    { query: company || job.company, title: `${company || job.company} 官网信息`, platform: INFO_PLATFORMS[3], months: 4 },
+    { query: company || job.company, title: `${company || job.company} 百科词条`, platform: INFO_PLATFORMS[0] },
+    { query: company || job.company, title: `${company || job.company} 近期报道检索`, platform: INFO_PLATFORMS[1] },
+    { query: industry.category, title: `${industry.category} 行业报道检索`, platform: INFO_PLATFORMS[2] },
+    { query: company || job.company, title: `${company || job.company} 官网检索`, platform: INFO_PLATFORMS[3] },
   ];
 
   return queries
@@ -218,14 +332,14 @@ function buildBackgroundSources(job, now) {
       source_type: item.platform.type,
       title: item.title,
       url: item.platform.searchUrl(item.query),
-      published_at: monthsAgo(now, item.months),
-      snippet: index === 2 ? `用于了解 ${industry.category} 的近半年市场趋势、竞争格局与政策动态。` : `用于核验 ${company || job.company} 的公司简介、主营业务和近期新闻。`,
+      published_at: null,
+      snippet: index === 2 ? `实时检索入口：${industry.category} 的公开行业报道。` : `实时检索入口：${company || job.company} 的公开资料与报道。`,
       quality_score: 72 - index * 4,
       is_expired: false,
     }));
 }
 
-function buildCompanyBackground(job, industryBackground, now) {
+function buildCompanyBackground(job, industryBackground) {
   const company = job.company || cleanCompany(job.company) || "目标公司";
   const department = job.department || "目标部门";
   const role = job.job_title || inferRoleType(job);
@@ -236,24 +350,23 @@ function buildCompanyBackground(job, industryBackground, now) {
     parent_company: "未识别",
     department_positioning: truncate(`${department} 通常承担 ${role} 的需求落地、跨团队协作和业务指标推进；当前版本以 JD 字段作为定位依据。`, 120),
     recent_news: [
-      news(`${company} 近期业务动态与战略方向`, `${company} 近期动态`, now, 1, "36氪"),
-      news(`${company} 产品与组织调整线索`, `${company} 产品 组织 调整`, now, 2, "虎嗅"),
-      news(`${company} 官网 About 与业务介绍`, `${company} 官网 About`, now, 4, "公司官网"),
+      news(`${company} 近期报道检索`, `${company} 近期动态`, "36氪"),
+      news(`${company} 产品与组织报道检索`, `${company} 产品 组织`, "虎嗅"),
+      news(`${company} 官网与业务介绍检索`, company, "公司官网"),
     ],
   };
 }
 
-function buildIndustryBackground(job, now) {
+function buildIndustryBackground(job) {
   const industry = detectIndustry(job);
   return {
     category: industry.category,
     summary: truncate(`${industry.category} 的岗位竞争通常同时考察行业理解、业务指标和岗位专业能力。建议结合近半年融资、产品迭代、监管政策与头部公司动态，准备可落到目标公司的观点。`, 210),
     recent_events: [
-      event(`${industry.category} 近半年投融资与产品动态`, `${industry.category} 投融资 产品 动态`, now, 1),
-      event(`${industry.category} 头部公司竞争格局`, `${industry.category} 竞争格局`, now, 2),
-      event(`${industry.category} 用户增长与商业化趋势`, `${industry.category} 增长 商业化`, now, 3),
-      event(`${industry.category} 政策与合规关注点`, `${industry.category} 政策 合规`, now, 4),
-      event(`${industry.category} 技术/产品创新方向`, `${industry.category} 技术 产品 创新`, now, 5),
+      event(`${industry.category} 投融资与产品动态检索`, `${industry.category} 投融资 产品 动态`, 1),
+      event(`${industry.category} 竞争格局报道检索`, `${industry.category} 竞争格局`, 2),
+      event(`${industry.category} 增长与商业化报道检索`, `${industry.category} 增长 商业化`, 3),
+      event(`${industry.category} 政策与合规报道检索`, `${industry.category} 政策 合规`, 4),
     ],
     competitors: industry.competitors,
   };
@@ -336,33 +449,27 @@ function industry(category, keywords, competitors) {
   return { category, keywords, competitors };
 }
 
-function news(title, query, now, months, platform) {
+function news(title, query, platform) {
   return {
     title,
     url: searchUrl(platform, query),
-    published_at: monthsAgo(now, months),
-    summary: `建议打开来源核验 ${title}，并提炼与目标岗位相关的业务判断。`,
+    published_at: null,
+    summary: `实时检索入口：打开即是该主题的最新公开报道。`,
   };
 }
 
-function event(title, query, now, months) {
+function event(title, query, index) {
   return {
     title,
-    url: searchUrl(months % 2 ? "36氪" : "虎嗅", query),
-    date: monthsAgo(now, months),
-    summary: `用于补充 ${title} 的行业背景和面试观点素材。`,
+    url: searchUrl(index % 2 ? "36氪" : "虎嗅", query),
+    date: null,
+    summary: `实时检索入口：用于补充 ${title.replace(/检索$/, "")}素材。`,
   };
 }
 
 function searchUrl(platform, query) {
   const source = INFO_PLATFORMS.find((item) => item.platform === platform) || INFO_PLATFORMS[1];
   return source.searchUrl(query);
-}
-
-function monthsAgo(now, months) {
-  const date = new Date(now.getTime());
-  date.setMonth(date.getMonth() - months);
-  return date.toISOString();
 }
 
 function truncate(value, maxLength) {

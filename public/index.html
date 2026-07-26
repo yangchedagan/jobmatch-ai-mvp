@@ -10,79 +10,109 @@
     <section id="coverPage" class="cover-page" aria-label="JobMatch AI 封面">
       <div class="cover-paper" aria-hidden="true"></div>
       <div class="cover-stage">
-        <div class="cover-wordmark">
-          <span>JobMatch</span>
-          <sup>AI</sup>
+        <div class="cover-wordmark cover-calligraphy" aria-label="良禽择木而栖">
+          <span class="calligraphy-text" aria-hidden="true">
+            <i>良</i><i>禽</i><i>择</i><i>木</i><i>而</i><i>栖</i>
+          </span>
         </div>
 
-        <div class="cover-scene" aria-hidden="true">
-          <div class="cover-bird">
-            <span class="bird-wing"></span>
-            <span class="bird-body"></span>
+        <div class="cover-scene ink-scene" aria-hidden="true">
+          <span class="ink-cloud cloud-left"><img src="/ink-clouds.webp" alt="" /></span>
+          <span class="ink-cloud cloud-right"><img src="/ink-clouds.webp" alt="" /></span>
+
+          <div class="ink-bird-flight">
+            <div class="ink-bird-arc">
+              <img class="bird-frame bird-gliding" src="/ink-bird-fly.png" alt="" />
+              <img class="bird-frame bird-perched" src="/ink-bird-perch.png" alt="" />
+            </div>
           </div>
-          <div class="stone-mark">
-            <span class="stone-letter stone-j">J</span>
-            <span class="stone-letter stone-m">M</span>
-            <i class="moss moss-a"></i>
-            <i class="moss moss-b"></i>
-            <i class="moss moss-c"></i>
-            <i class="moss moss-d"></i>
-          </div>
-          <div class="cover-ground">
-            <i class="rock rock-a"></i>
-            <i class="rock rock-b"></i>
-            <i class="rock rock-c"></i>
-            <i class="grass grass-a"></i>
-            <i class="grass grass-b"></i>
-            <i class="grass grass-c"></i>
-            <i class="grass grass-d"></i>
-            <i class="flower flower-a"></i>
-            <i class="flower flower-b"></i>
+
+          <div class="ink-water">
+            <span class="ink-ripple ripple-a"></span>
+            <span class="ink-ripple ripple-b"></span>
+            <span class="ink-ripple ripple-c"></span>
+            <div class="ink-leaf-wrap">
+              <img class="ink-leaf-img" src="/ink-leaf.png" alt="" />
+            </div>
           </div>
         </div>
 
         <div class="cover-actions">
           <div class="cover-copy">
-            <h2>Smart career matching for professionals</h2>
+            <h2 class="cover-brand-mark" aria-label="JobMatch AI">
+              <span class="wordmark-main" aria-hidden="true">
+                <span class="wordmark-job">Job</span><span class="wordmark-match">Match</span>
+              </span>
+              <sup>AI</sup>
+            </h2>
+            <p class="cover-sub">
+              <span>SMART CAREER MATCHING</span>
+              <span>让每一次落点都算数</span>
+            </p>
             <button id="coverPathBtn" class="cover-link-button" type="button">Find your path ↓</button>
           </div>
 
           <div class="cover-cta-group" aria-label="进入应用">
             <button id="coverWorkbenchBtn" class="cover-tile cover-tile-dark" type="button">W.</button>
-            <button id="coverEnterBtn" class="cover-tile cover-tile-primary" type="button">进入工作台</button>
+            <button id="coverEnterBtn" class="cover-tile cover-tile-primary" type="button">和 AI 开始对话</button>
           </div>
 
-          <div class="cover-match-panel">
-            <p>Great careers are born from perfect matches.</p>
-            <button id="coverMatchBtn" class="cover-match-button" type="button">
-              <span>✉</span>
-              <strong>FIND YOUR MATCH</strong>
-            </button>
-          </div>
         </div>
       </div>
     </section>
 
-    <header class="topbar">
+    <header class="side-rail">
       <div class="brand-block">
         <p class="eyebrow">JobMatch AI</p>
         <h1>求职能力闭环迭代助手</h1>
       </div>
       <nav class="view-tabs" aria-label="主流程导航">
-        <button id="workbenchTab" class="view-tab active" data-page="workbench" type="button">岗位工作台</button>
+        <button id="agentTab" class="view-tab active" data-page="agent" type="button">AI 助手</button>
+        <button id="workbenchTab" class="view-tab" data-page="workbench" type="button">岗位工作台</button>
         <button id="reportTab" class="view-tab" data-page="report" type="button">匹配报告</button>
         <button id="intelligenceTab" class="view-tab" data-page="intelligence" type="button">岗位情报雷达</button>
       </nav>
-      <div class="topbar-actions">
+      <div class="rail-footer">
         <span id="health" class="status-dot">启动中</span>
-        <a class="ghost-button admin-link" href="/admin">后台</a>
-        <button id="crawlJobsBtn" class="ghost-button" title="按 robots 与限速抓取官方招聘入口" type="button">抓取</button>
-        <button id="syncJobsBtn" class="icon-button" title="同步岗位库" type="button">↻</button>
+        <div class="rail-tools">
+          <a class="ghost-button admin-link" href="/admin">后台</a>
+          <button id="crawlJobsBtn" class="ghost-button" title="按 robots 与限速抓取官方招聘入口" type="button">抓取</button>
+          <button id="syncJobsBtn" class="icon-button" title="同步岗位库" type="button">↻</button>
+        </div>
       </div>
     </header>
 
     <main class="app-shell">
-      <section id="workbenchPage" class="page-view workbench-page active" aria-label="岗位工作台">
+      <section id="agentPage" class="page-view agent-page active" aria-label="AI 求职助手">
+        <div class="chat-shell">
+          <div id="chatStream" class="chat-stream" aria-live="polite"></div>
+
+          <div class="chat-dock">
+            <div class="chat-chips" role="group" aria-label="快捷指令">
+              <button type="button" class="chat-chip" data-chip="sample">载入示例简历</button>
+              <button type="button" class="chat-chip" data-chip="recommend">推荐 Top10 岗位</button>
+              <button type="button" class="chat-chip" data-chip="campus">找产品经理校招岗</button>
+              <button type="button" class="chat-chip" data-chip="radar">面试考什么</button>
+            </div>
+            <form id="chatComposer" class="chat-composer">
+              <label class="chat-attach" for="chatFile" title="上传简历文件（PDF / TXT / 图片）">
+                <input id="chatFile" type="file" accept=".pdf,.txt,.md,.json,.png,.jpg,.jpeg" />
+                <span aria-hidden="true">⊕</span>
+              </label>
+              <div class="chat-input-wrap">
+                <span id="chatAttachmentPill" class="chat-attachment-pill" hidden>
+                  <span id="chatAttachmentName"></span>
+                  <button type="button" id="chatAttachmentClear" aria-label="移除附件">×</button>
+                </span>
+                <textarea id="chatInput" rows="1" placeholder="告诉我你想做什么，比如：解析我的简历 / 匹配字节的产品岗……"></textarea>
+              </div>
+              <button id="chatSendBtn" class="chat-send" type="submit" aria-label="发送">↑</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="workbenchPage" class="page-view workbench-page" aria-label="岗位工作台">
         <div class="workspace workbench-grid">
           <section class="panel resume-panel">
             <div class="panel-heading">
@@ -227,5 +257,6 @@
 
     <script src="/cover-fallback.js"></script>
     <script type="module" src="/app.js"></script>
+    <script type="module" src="/chat.js"></script>
   </body>
 </html>
