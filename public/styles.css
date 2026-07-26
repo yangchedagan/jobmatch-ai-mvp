@@ -90,13 +90,15 @@ button {
 }
 
 .cover-wordmark {
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: clamp(14px, 1.8vw, 28px);
-  font-family: "FZKai-Z03", "STKaiti", "KaiTi", "Kaiti SC", var(--display);
+  font-family: "Arial Black", Impact, Inter, "Microsoft YaHei", sans-serif;
   font-size: clamp(64px, 9.4vw, 138px);
-  font-weight: 500;
+  font-weight: 900;
   line-height: 0.94;
   padding-top: 0.06em;
   color: #1c1b1b;
@@ -559,7 +561,7 @@ button {
   text-wrap: nowrap;
 }
 
-.cover-copy h2:not(.cover-brand-mark)::before {
+.cover-copy h2:not(.cover-brand-mark):not(.cover-calligraphy)::before {
   content: "";
   position: absolute;
   left: 0;
@@ -570,17 +572,45 @@ button {
   background: linear-gradient(#b5432a 0 28%, #24272a 28% 100%);
 }
 
-.cover-copy .cover-brand-mark {
+.cover-wordmark.cover-brand-mark {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: clamp(8px, 1.1vw, 14px);
   margin: 0;
   padding-left: 0;
   max-width: none;
   font-family: "Arial Black", Impact, Inter, "Microsoft YaHei", sans-serif;
-  font-size: clamp(48px, 5.5vw, 78px);
+  font-size: clamp(76px, 11.2vw, 164px);
   font-weight: 900;
   line-height: 0.92;
+}
+
+.cover-copy .cover-calligraphy {
+  display: grid;
+  justify-items: start;
+  gap: 0.08em;
+  margin: 0;
+  padding-left: 0;
+  max-width: none;
+  font-family: "FZKai-Z03", "STKaiti", "KaiTi", "Kaiti SC", var(--display);
+  font-size: clamp(54px, 6vw, 88px);
+  font-weight: 500;
+  line-height: 0.86;
+}
+
+.cover-calligraphy-bottom .calligraphy-line {
+  width: max-content;
+}
+
+.cover-calligraphy-bottom .calligraphy-line-lead::after {
+  display: none;
+}
+
+.cover-calligraphy-bottom .calligraphy-line-rest {
+  margin-left: 0.05em;
+  font-size: 0.66em;
+  letter-spacing: 0.14em;
 }
 
 .cover-title-line {
